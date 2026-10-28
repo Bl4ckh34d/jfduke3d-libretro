@@ -1,0 +1,51 @@
+diff --git a/src/cache1d.c b/src/cache1d.c
+index 95a27a7..c43892f 100644
+--- a/src/cache1d.c
++++ b/src/cache1d.c
+@@ -261,6 +261,18 @@ static searchpath_t *searchpathhead = NULL;
+ static size_t maxsearchpathlen = 0;
+ int pathsearchmode = 0;
+ 
++void Duke_ClearSearchPaths(void)
++{
++    while (searchpathhead) {
++        searchpath_t *next = searchpathhead->next;
++        free(searchpathhead->path);
++        free(searchpathhead);
++        searchpathhead = next;
++    }
++    maxsearchpathlen = 0;
++    pathsearchmode = 0;
++}
++
+ int addsearchpath(const char *p)
+ {
+ 	struct stat st;
+@@ -304,7 +316,7 @@ int findfrompath(const char *fn, char **where)
+ 	// pathsearchmode == 0: tests current dir and then the dirs of the path stack
+ 	// pathsearchmode == 1: tests fn without modification, then like for pathsearchmode == 0
+ 	
+-	if (pathsearchmode) {
++	if (pathsearchmode || fn[0] == '/') {
+ 		// test unmolested filename first
+ 		if (access(fn, F_OK) >= 0) {
+ 			*where = strdup(fn);
+diff --git a/src/osd.c b/src/osd.c
+index 92b5dbb..a02914e 100644
+--- a/src/osd.c
++++ b/src/osd.c
+@@ -1,3 +1,4 @@
++// This file has been modified from Ken Silverman's original release
+ // On-screen Display (ie. console)
+ // for the Build Engine
+ // by Jonathon Fowler (jf@jonof.id.au)
+@@ -298,7 +299,9 @@ void OSD_Init(void)
+ 	Bmemset(osdtext, 0, TEXTSIZE);
+ 	osdlines=1;
+ 
++#ifndef LIBRETRO
+ 	atexit(OSD_Cleanup);
++#endif
+ 
+ 	OSD_RegisterFunction("listsymbols","listsymbols: lists all the recognized symbols",osdcmd_listsymbols);
+ 	OSD_RegisterFunction("help","help: displays help on the named symbol",osdcmd_help);

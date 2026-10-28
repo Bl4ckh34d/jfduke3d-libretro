@@ -1,0 +1,13 @@
+diff --git a/src/drivers.c b/src/drivers.c
+index 9b7db31..f3a5e28 100644
+--- a/src/drivers.c
++++ b/src/drivers.c
+@@ -94,7 +94,7 @@ static struct {
+     
+     // Everyone gets the "no sound" driver
+     {
+-        "No Sound",
++        "Libretro PCM/MIDI",
+         NoSoundDrv_GetError,
+         NoSoundDrv_ErrorString,
+         NoSoundDrv_PCM_Init,

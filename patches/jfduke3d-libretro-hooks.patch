@@ -1,0 +1,135 @@
+diff --git a/src/config.c b/src/config.c
+index 8f7e4af..ba549dd 100644
+--- a/src/config.c
++++ b/src/config.c
+@@ -828,6 +828,7 @@ void CONFIG_WriteSetup( void )
+ 
+     SCRIPT_Save (scripthandle, setupfilename);
+     SCRIPT_Free (scripthandle);
++    scripthandle = -1;
+ }
+ 
+ 
+diff --git a/src/game.c b/src/game.c
+index d6c2782..8923f94 100644
+--- a/src/game.c
++++ b/src/game.c
+@@ -7455,8 +7455,16 @@ void loadtmb(void)
+ 
+ void Shutdown( void )
+ {
++    extern void Duke_Ready(int value);
++    Duke_Ready(0);
+     MusicShutdown();
+     SoundShutdown();
++#ifdef LIBRETRO
++    extern void Duke_RTSCleanup(void);
++    Duke_RTSCleanup();
++    memset(Sound, 0, sizeof(Sound));
++    memset(SoundOwner, 0, sizeof(SoundOwner));
++#endif
+     uninittimer();
+     uninitengine();
+     CONTROL_Shutdown();
+@@ -7672,6 +7680,10 @@ const char *gameeditionname = "Unknown edition";
+ # define HAVE_STARTWIN
+ #endif
+ 
++int Duke_InGame(void) { return (ps[myconnectindex].gm & MODE_GAME) && !(ps[myconnectindex].gm & MODE_MENU); }
++extern void Duke_Ready(int value);
++extern const char *Duke_SaveDirectory(void);
++
+ int app_main(int argc, char const * const argv[])
+ {
+     int i, j;
+@@ -7724,6 +7736,7 @@ int app_main(int argc, char const * const argv[])
+         }
+     }
+ 
++#ifndef LIBRETRO
+     // creating a 'user_profiles_disabled' file in the current working
+     // directory where the game was launched makes the installation
+     // "portable" by writing into the working directory
+@@ -7760,6 +7773,10 @@ int app_main(int argc, char const * const argv[])
+         }
+     }
+ 
++#else
++    addsearchpath(Duke_SaveDirectory());
++#endif
++
+     buildsetlogfile("duke3d.log");
+ 
+     wm_setapptitle("JFDuke3D");
+@@ -7776,6 +7793,16 @@ int app_main(int argc, char const * const argv[])
+     }
+ 
+     configloaded = CONFIG_ReadSetup();
++#ifdef LIBRETRO
++    ScreenWidth = 640; ScreenHeight = 400; ScreenBPP = 8; ScreenMode = 0;
++    FXDevice = MusicDevice = 1; MixRate = 48000; NumBits = 16; NumChannels = 2;
++    UseJoystick = 0; UseMouse = 1;
++    CONFIG_SetDefaultKeyDefinitions(CONFIG_DEFAULTS_MODERN);
++    CONFIG_SetMouseDefaults(CONFIG_DEFAULTS_MODERN);
++    CONTROL_MapKey(gamefunc_Previous_Weapon, 0x33, 0xff);
++    CONTROL_MapKey(gamefunc_Next_Weapon, 0x34, 0xff);
++    ud.mouseaiming = 1;
++#endif
+     if (getenv("DUKE3DGRP")) {
+         strncpy(duke3dgrp, getenv("DUKE3DGRP"), BMAX_PATH);
+     }
+@@ -7902,6 +7929,7 @@ int app_main(int argc, char const * const argv[])
+     registerosdcommands();
+ 
+     Startup();
++    Duke_Ready(1);
+     if (quitevent) return 0;
+ 
+     buildputs("\n");
+diff --git a/src/grpscan.c b/src/grpscan.c
+index fc5e806..f41349f 100644
+--- a/src/grpscan.c
++++ b/src/grpscan.c
+@@ -221,13 +221,16 @@ int ScanGroups(void)
+         FILE *fp;
+         fp = fopen(GRPCACHEFILE, "wt");
+         if (fp) {
+-            for (fg = usedgrpcache; fg; fg=fgg) {
+-                fgg = fg->next;
++            for (fg = usedgrpcache; fg; fg=fg->next) {
+                 fprintf(fp, "\"%s\" %d %d %d\n", fg->name, fg->size, fg->mtime, fg->crcval);
+-                free(fg);
+             }
+             fclose(fp);
+         }
++        while (usedgrpcache) {
++            fg = usedgrpcache->next;
++            free(usedgrpcache);
++            usedgrpcache = fg;
++        }
+     }
+ 
+     return 0;
+diff --git a/src/rts.c b/src/rts.c
+index 31e1861..e23bc2f 100644
+--- a/src/rts.c
++++ b/src/rts.c
+@@ -140,6 +140,18 @@ int32 RTS_AddFile (char *filename)
+ ====================
+ */
+ 
++void Duke_RTSCleanup(void)
++{
++    for (int i = 0; i < numlumps; ++i) {
++        int seen = 0;
++        for (int j = 0; j < i; ++j) if (lumpinfo[j].handle == lumpinfo[i].handle) seen = 1;
++        if (!seen) kclose(lumpinfo[i].handle);
++    }
++    free(lumpinfo); lumpinfo = NULL;
++    free(lumpcache); lumpcache = NULL;
++    numlumps = 0; RTS_Started = false;
++}
++
+ void RTS_Init (char *filename)
+    {
+    int32 length;

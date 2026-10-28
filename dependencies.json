@@ -1,0 +1,32 @@
+[
+  {
+    "path": "jfduke3d",
+    "url": "https://github.com/jonof/jfduke3d.git",
+    "revision": "55c5f9592d2a78e427a2bbdb13ce3c4c9ccf6f04"
+  },
+  {
+    "path": "libadlmidi",
+    "url": "https://github.com/Wohlstand/libADLMIDI.git",
+    "revision": "3e9ddb13ad39e2de0ca7eb003e622d4741aa50b7"
+  },
+  {
+    "path": "libretro-common",
+    "url": "https://github.com/libretro/libretro-common",
+    "revision": "879c8d507b0b52e77e27d759239c2b5df1e26dfd"
+  },
+  {
+    "path": "jfduke3d/jfbuild",
+    "url": "https://github.com/jonof/jfbuild.git",
+    "revision": "40a98be571e359a70fc60476899e4650e285dbca"
+  },
+  {
+    "path": "jfduke3d/jfaudiolib",
+    "url": "https://github.com/jonof/jfaudiolib.git",
+    "revision": "68be97f6d33d7be2421a6bea437f21c60d70f8bb"
+  },
+  {
+    "path": "jfduke3d/jfmact",
+    "url": "https://github.com/jonof/jfmact.git",
+    "revision": "731c0cc4aabd3cc0f510c9322825f1b61b2e47b3"
+  }
+]
