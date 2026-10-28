@@ -11,7 +11,7 @@ index 8f7e4af..ba549dd 100644
  
  
 diff --git a/src/game.c b/src/game.c
-index d6c2782..8923f94 100644
+index d6c2782..98f1e5d 100644
 --- a/src/game.c
 +++ b/src/game.c
 @@ -7455,8 +7455,16 @@ void loadtmb(void)
@@ -31,18 +31,36 @@ index d6c2782..8923f94 100644
      uninittimer();
      uninitengine();
      CONTROL_Shutdown();
-@@ -7672,6 +7680,10 @@ const char *gameeditionname = "Unknown edition";
+@@ -7672,6 +7680,28 @@ const char *gameeditionname = "Unknown edition";
  # define HAVE_STARTWIN
  #endif
  
 +int Duke_InGame(void) { return (ps[myconnectindex].gm & MODE_GAME) && !(ps[myconnectindex].gm & MODE_MENU); }
++extern int Duke_TakeQuickAction(void);
++int Duke_QuickActions(void)
++{
++    int action=Duke_TakeQuickAction();
++    if(!action || ud.multimode!=1) return 0;
++    if(action==1) {
++        if(ud.recstat==2 || !Duke_InGame() || sprite[ps[myconnectindex].i].extra<=0) return 0;
++        strcpy(ud.savegame[9], "TV Quicksave");
++        int result=saveplayer(9);
++        if(!result) lastsavedpos=9;
++        fprintf(stderr,"Duke quicksave result=%d pos=%d,%d\n",result,ps[myconnectindex].posx,ps[myconnectindex].posy);
++    } else {
++        int result=loadplayer(9);
++        fprintf(stderr,"Duke quickload result=%d pos=%d,%d\n",result,ps[myconnectindex].posx,ps[myconnectindex].posy);
++    }
++    return 1;
++}
++
 +extern void Duke_Ready(int value);
 +extern const char *Duke_SaveDirectory(void);
 +
  int app_main(int argc, char const * const argv[])
  {
      int i, j;
-@@ -7724,6 +7736,7 @@ int app_main(int argc, char const * const argv[])
+@@ -7724,6 +7754,7 @@ int app_main(int argc, char const * const argv[])
          }
      }
  
@@ -50,7 +68,7 @@ index d6c2782..8923f94 100644
      // creating a 'user_profiles_disabled' file in the current working
      // directory where the game was launched makes the installation
      // "portable" by writing into the working directory
-@@ -7760,6 +7773,10 @@ int app_main(int argc, char const * const argv[])
+@@ -7760,6 +7791,10 @@ int app_main(int argc, char const * const argv[])
          }
      }
  
@@ -61,7 +79,7 @@ index d6c2782..8923f94 100644
      buildsetlogfile("duke3d.log");
  
      wm_setapptitle("JFDuke3D");
-@@ -7776,6 +7793,16 @@ int app_main(int argc, char const * const argv[])
+@@ -7776,6 +7811,17 @@ int app_main(int argc, char const * const argv[])
      }
  
      configloaded = CONFIG_ReadSetup();
@@ -73,12 +91,13 @@ index d6c2782..8923f94 100644
 +    CONFIG_SetMouseDefaults(CONFIG_DEFAULTS_MODERN);
 +    CONTROL_MapKey(gamefunc_Previous_Weapon, 0x33, 0xff);
 +    CONTROL_MapKey(gamefunc_Next_Weapon, 0x34, 0xff);
-+    ud.mouseaiming = 1;
++    /* Right stick supplies mouse deltas: toggle mode, enabled by default. */
++    ud.mouseaiming = 0; myaimmode = 1;
 +#endif
      if (getenv("DUKE3DGRP")) {
          strncpy(duke3dgrp, getenv("DUKE3DGRP"), BMAX_PATH);
      }
-@@ -7902,6 +7929,7 @@ int app_main(int argc, char const * const argv[])
+@@ -7902,6 +7948,7 @@ int app_main(int argc, char const * const argv[])
      registerosdcommands();
  
      Startup();
@@ -86,6 +105,16 @@ index d6c2782..8923f94 100644
      if (quitevent) return 0;
  
      buildputs("\n");
+@@ -8053,6 +8100,9 @@ if (VOLUMEONE) {
+         }
+ 
+         OSD_DispatchQueued();
++#ifdef LIBRETRO
++        Duke_QuickActions();
++#endif
+ 
+         if( ud.recstat == 2 || ud.multimode > 1 || ( ud.show_help == 0 && (ps[myconnectindex].gm&MODE_MENU) != MODE_MENU ) )
+             if( ps[myconnectindex].gm&MODE_GAME )
 diff --git a/src/grpscan.c b/src/grpscan.c
 index fc5e806..f41349f 100644
 --- a/src/grpscan.c
@@ -110,6 +139,24 @@ index fc5e806..f41349f 100644
      }
  
      return 0;
+diff --git a/src/menues.c b/src/menues.c
+index a3a8aee..fb76fe3 100644
+--- a/src/menues.c
++++ b/src/menues.c
+@@ -1118,6 +1118,13 @@ void menus(void)
+         return;
+     }
+ 
++#ifdef LIBRETRO
++    /* The title/demo menu has its own loop. Accept native quickload there,
++       at the same safe boundary used by the ordinary Load Game menu. */
++    extern int Duke_QuickActions(void);
++    if (Duke_QuickActions()) return;
++#endif
++
+     CONTROL_GetUserInput(&uinfo);
+     CONTROL_ClearUserInput(&uinfo);
+ 
 diff --git a/src/rts.c b/src/rts.c
 index 31e1861..e23bc2f 100644
 --- a/src/rts.c

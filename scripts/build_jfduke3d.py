@@ -73,10 +73,12 @@ for source in [*[ADL / 'src' / name for name in names], *sorted((ADL / 'src/mode
 exports = BUILD / 'exports.map'; exports.write_text('{ global: retro_*; local: *; };\n')
 response = BUILD / 'objects.rsp'
 response.write_text('\n'.join('"' + str(obj).replace('\\', '/') + '"' for obj in objects))
-out = ROOT / 'release/duke3d_native_libretro_android.so'
+out = BUILD / 'duke3d_engine.so'
 out.parent.mkdir(exist_ok=True)
 subprocess.run([str(LLVM / 'clang++.exe'), '--target=armv7a-linux-androideabi21', '-shared',
                 '-static-libstdc++', '@' + str(response), '-Wl,--no-undefined', '-Wl,--gc-sections',
                 '-Wl,--version-script=' + str(exports), '-lm', '-o', str(out)], check=True)
 subprocess.run([str(LLVM / 'llvm-strip.exe'), '--strip-unneeded', str(out)], check=True)
 print(out, out.stat().st_size, hashlib.sha256(out.read_bytes()).hexdigest())
+from build_restart_core import build
+build(out, ROOT / 'release/duke3d_native_libretro_android.so')

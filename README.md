@@ -18,7 +18,7 @@ python scripts/build_duke_synth.py
 python scripts/build_jfduke3d.py
 ```
 
-Output: `release/duke3d_native_libretro_android.so` (ARMv7, Android API 21). `PORT_SOURCES_DIR` optionally points to an existing dependency directory to share downloads between builds. Fetch refuses unexpected existing revisions/origins instead of resetting them. Remove only disposable `build/` output when a clean rebuild is needed.
+Output: `release/duke3d_native_libretro_android.so` (ARMv7, outer adapter targets Android API 23; tested on Android 11). `PORT_SOURCES_DIR` optionally points to an existing dependency directory to share downloads between builds. Fetch refuses unexpected existing revisions/origins instead of resetting them. Remove only disposable `build/` output when a clean rebuild is needed.
 
 ## Install and configure
 
@@ -30,7 +30,9 @@ Keep original game data on USB. Keep saves in a writable directory. `config/` co
 
 Hollywood Holocaust and Red Light District movement, shooting, native save/load and resume tested. Street sample: about 60 presented FPS over 21.9 seconds, not a whole-campaign benchmark. Quit regression reproduces the old freeze and verifies shutdown/reload; live in-game Quit returned to RetroArch.
 
-RetroArch save states are not implemented. `retro_reset` is currently a no-op. Native saves remain available. The Build engine retains its separate license; this repository does not distribute a prebuilt combined binary.
+RetroArch save states are not implemented. L3 saves native slot 9 as TV Quicksave; R3 loads it, including from the menu after Reset. Saving requires a living single player outside demo playback. Reset unloads the embedded engine and opens a fresh instance while retaining disk saves. The loader uses an anonymous memory file and verifies unloading; no RetroArch rebuild is required. The Build engine retains its separate license; this repository does not distribute a prebuilt combined binary.
+
+Physical Xbox controls: left stick move, right stick look, A jump, B crouch, X activate, Y use selected inventory, R2 fire, LB/RB previous/next weapon, View map, Start menu. D-pad up performs Quick Kick, down toggles the jetpack, and left/right select inventory. The example remap accounts for Xbox X/Y labels. L2 is reserved for the frontend's fast-forward shortcut; disable frontend save-state buttons for this native-save core as shown in the example override.
 
 These are bounded historical gameplay checks on one Android 11 ARMv7/Mali-G52 TV. Physical controller feel and speaker quality were not independently measured. See `docs/verification.md` for publication-time build checks.
 

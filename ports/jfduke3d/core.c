@@ -28,6 +28,9 @@ static uint32_t pixels[640 * 480], colours[256];
 static unsigned output_width = 640, output_height = 400;
 static char content[2048], data_directory[2048], save_directory[2048];
 static bool key_state[256];
+static int quick_action;
+static bool old_quick[2];
+int Duke_TakeQuickAction(void){int action=quick_action;quick_action=0;return action;}
 static bool keyboard_down[256], gamepad_down[256];
 int displaycnt = 1;
 extern void Shutdown(void);
@@ -250,10 +253,10 @@ static void update_input(void)
     int lx = input(0, RETRO_DEVICE_ANALOG, 0, 0), ly = input(0, RETRO_DEVICE_ANALOG, 0, 1);
     int rx = input(0, RETRO_DEVICE_ANALOG, 1, 0), ry = input(0, RETRO_DEVICE_ANALOG, 1, 1);
     bool playing = ready && Duke_InGame();
-    key(0x11, ly < -8000 || (playing && button(4)), 0); key(0x1f, ly > 8000 || (playing && button(5)), 0);
+    key(0x11, ly < -8000, 0); key(0x1f, ly > 8000, 0);
     key(0x1e, lx < -8000, 0); key(0x20, lx > 8000, 0);
-    key(0xc8, button(4), 0); key(0xd0, button(5), 0);
-    key(0xcb, button(6), 0); key(0xcd, button(7), 0);
+    key(0xc8, !playing && button(4), 0); key(0xd0, !playing && button(5), 0);
+    key(0xcb, !playing && button(6), 0); key(0xcd, !playing && button(7), 0);
     key(0x01, button(3) || (!playing && button(8)), 27);
     key(0x1c, playing ? button(1) : button(0), 13);
     /* Original yes/no dialogs accept Y; do not emulate Fire across a load. */
@@ -261,11 +264,12 @@ static void update_input(void)
     key(0x39, playing && button(0), 32);
     key(0x12, button(9), 'e');
     key(0x38, playing && button(8), 0);
-    key(0x29, button(12), 0);
+    key(0x29, playing && button(4), 0);
+    key(0x24, playing && button(5), 'j');
     key(0x0f, button(2), 9);
     key(0x33, button(10), ','); key(0x34, button(11), '.');
-    key(0x1a, button(14), 0); key(0x1b, button(15), 0);
-    if (playing) mousex += 3 * (button(7) - button(6));
+    key(0x1a, playing && button(6), 0); key(0x1b, playing && button(7), 0);
+    for(int i=0;i<2;i++){bool down=button(14+i);if(down&&!old_quick[i])quick_action=i+1;old_quick[i]=down;}
     mousex += abs(rx) > 6000 ? rx / 1600 : 0;
     mousey += abs(ry) > 6000 ? ry / 2000 : 0;
     mousex += input(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
@@ -290,18 +294,18 @@ void retro_init(void)
         {0, RETRO_DEVICE_JOYPAD, 0, 1, "Use inventory"},
         {0, RETRO_DEVICE_JOYPAD, 0, 2, "Map"},
         {0, RETRO_DEVICE_JOYPAD, 0, 3, "Game menu"},
-        {0, RETRO_DEVICE_JOYPAD, 0, 4, "Forward / Menu up"},
-        {0, RETRO_DEVICE_JOYPAD, 0, 5, "Backward / Menu down"},
-        {0, RETRO_DEVICE_JOYPAD, 0, 6, "Turn left / Menu left"},
-        {0, RETRO_DEVICE_JOYPAD, 0, 7, "Turn right / Menu right"},
+        {0, RETRO_DEVICE_JOYPAD, 0, 4, "Quick kick / Menu up"},
+        {0, RETRO_DEVICE_JOYPAD, 0, 5, "Jetpack / Menu down"},
+        {0, RETRO_DEVICE_JOYPAD, 0, 6, "Previous inventory / Menu left"},
+        {0, RETRO_DEVICE_JOYPAD, 0, 7, "Next inventory / Menu right"},
         {0, RETRO_DEVICE_JOYPAD, 0, 8, "Crouch / Cancel"},
         {0, RETRO_DEVICE_JOYPAD, 0, 9, "Open / Use"},
         {0, RETRO_DEVICE_JOYPAD, 0, 10, "Previous weapon"},
         {0, RETRO_DEVICE_JOYPAD, 0, 11, "Next weapon"},
-        {0, RETRO_DEVICE_JOYPAD, 0, 12, "Quick kick"},
+        {0, RETRO_DEVICE_JOYPAD, 0, 12, "Reserved: frontend fast-forward"},
         {0, RETRO_DEVICE_JOYPAD, 0, 13, "Fire"},
-        {0, RETRO_DEVICE_JOYPAD, 0, 14, "Previous inventory item"},
-        {0, RETRO_DEVICE_JOYPAD, 0, 15, "Next inventory item"},
+        {0, RETRO_DEVICE_JOYPAD, 0, 14, "Quicksave"},
+        {0, RETRO_DEVICE_JOYPAD, 0, 15, "Quickload"},
         {0, RETRO_DEVICE_ANALOG, 0, 0, "Strafe"},
         {0, RETRO_DEVICE_ANALOG, 0, 1, "Move"},
         {0, RETRO_DEVICE_ANALOG, 1, 0, "Turn"},
@@ -332,6 +336,7 @@ bool retro_load_game(const struct retro_game_info *game)
     mkdir(save_directory, 0700);
     stopped = stopping = ready = shutdown_requested = false;
     frames = rendered_frames = 0; last_event_frame = UINT64_MAX; totalclock = 0;
+    quick_action=0;memset(old_quick,0,sizeof old_quick);
     memset(key_state, 0, sizeof(key_state)); releaseallbuttons();
     memset(keyboard_down, 0, sizeof(keyboard_down)); memset(gamepad_down, 0, sizeof(gamepad_down));
     memset(pixels, 0, sizeof(pixels));
